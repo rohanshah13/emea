@@ -1,0 +1,9 @@
+{"language": "mr", "seed": 1, "language_adapters": ["hi"], "f1": 0.5079365079365079, "loss": 1.4944716095924377, "precision": 0.5387205387205387, "recall": 0.4804804804804805}
+{"language": "bho", "seed": 1, "language_adapters": ["hi"], "f1": 0.46695576756287943, "loss": 2.0925693114598594, "precision": 0.48900999091734787, "recall": 0.446804979253112}
+{"language": "ta", "seed": 1, "language_adapters": ["hi"], "f1": 0.5443276744812718, "loss": 1.3883723304385232, "precision": 0.5732122587968218, "recall": 0.5182144689584403}
+{"language": "mr", "seed": 2, "language_adapters": ["hi"], "f1": 0.5297805642633229, "loss": 1.4993798732757568, "precision": 0.5540983606557377, "recall": 0.5075075075075075}
+{"language": "bho", "seed": 2, "language_adapters": ["hi"], "f1": 0.44758029607826155, "loss": 2.311605135599772, "precision": 0.4677886355410785, "recall": 0.42904564315352695}
+{"language": "ta", "seed": 2, "language_adapters": ["hi"], "f1": 0.5581893665461364, "loss": 1.3866249805405026, "precision": 0.5839170636032502, "recall": 0.534633145202668}
+{"language": "mr", "seed": 3, "language_adapters": ["hi"], "f1": 0.5795275590551181, "loss": 1.4103431105613708, "precision": 0.609271523178808, "recall": 0.5525525525525525}
+{"language": "bho", "seed": 3, "language_adapters": ["hi"], "f1": 0.48433442963475853, "loss": 2.0959147115548453, "precision": 0.5060589618375837, "recall": 0.46439834024896265}
+{"language": "ta", "seed": 3, "language_adapters": ["hi"], "f1": 0.5879370162796905, "loss": 1.256376496383122, "precision": 0.6126251390433816, "recall": 0.5651616213442792}

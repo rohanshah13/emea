@@ -1,0 +1,9 @@
+{"language": "be", "seed": 1, "language_adapters": ["ru"], "f1": 0.7525606938935624, "loss": 1.4474219143390656, "precision": 0.754962833406209, "recall": 0.7501737921445951}
+{"language": "uk", "seed": 1, "language_adapters": ["ru"], "f1": 0.7631325146274031, "loss": 1.3608830427301342, "precision": 0.7631815843621399, "recall": 0.7630834512022631}
+{"language": "bg", "seed": 1, "language_adapters": ["ru"], "f1": 0.7989306599832915, "loss": 1.1233436175755092, "precision": 0.8036842812962216, "recall": 0.7942329413328018}
+{"language": "be", "seed": 2, "language_adapters": ["ru"], "f1": 0.7510496850944717, "loss": 1.3033469756444296, "precision": 0.7560760831278619, "recall": 0.7460896767466111}
+{"language": "uk", "seed": 2, "language_adapters": ["ru"], "f1": 0.7450357941109781, "loss": 1.3833689812956185, "precision": 0.75079976496703, "recall": 0.7393596502507394}
+{"language": "bg", "seed": 2, "language_adapters": ["ru"], "f1": 0.7934204807595868, "loss": 1.1159495489937918, "precision": 0.7985195154777928, "recall": 0.7883861537439373}
+{"language": "be", "seed": 3, "language_adapters": ["ru"], "f1": 0.7788178422324763, "loss": 1.3687473197778066, "precision": 0.7878545389881746, "recall": 0.7699860966284324}
+{"language": "uk", "seed": 3, "language_adapters": ["ru"], "f1": 0.787015761027865, "loss": 1.3403491953323627, "precision": 0.7923753665689149, "recall": 0.7817281728172817}
+{"language": "bg", "seed": 3, "language_adapters": ["ru"], "f1": 0.821098459477562, "loss": 1.066738212108612, "precision": 0.827807414410156, "recall": 0.8144973755896618}

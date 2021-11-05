@@ -1,0 +1,3 @@
+{"language": "be", "seed": 1, "language_adapters": ["en", "ru"], "adapter_weights": "0.5,0.5", "f1": 0.6661184210526316, "loss": 1.8407818894212613, "precision": 0.654281098546042, "recall": 0.678391959798995}
+{"language": "uk", "seed": 1, "language_adapters": ["en", "ru"], "adapter_weights": "0.5,0.5", "f1": 0.6069615129884467, "loss": 2.6720570238979007, "precision": 0.6042490842490843, "recall": 0.6096984033116499}
+{"language": "bg", "seed": 1, "language_adapters": ["en", "ru"], "adapter_weights": "0.5,0.5", "f1": 0.7467618561958185, "loss": 1.539141447144085, "precision": 0.7228987033502271, "recall": 0.7722542539727183}

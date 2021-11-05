@@ -21,11 +21,13 @@ import os
 import warnings
 from dataclasses import dataclass
 from typing import Optional, Tuple
+import numpy as np
 
 import torch
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
+from torch.distributions import Categorical
 
 from .activations import ACT2FN
 from .adapter_bert import (
@@ -245,6 +247,7 @@ class BertSelfAttention(nn.Module):
         encoder_hidden_states=None,
         encoder_attention_mask=None,
         output_attentions=False,
+        tmp_score=None
     ):
         mixed_query_layer = self.query(hidden_states)
 
@@ -272,10 +275,42 @@ class BertSelfAttention(nn.Module):
 
         # Normalize the attention scores to probabilities.
         attention_probs = nn.Softmax(dim=-1)(attention_scores)
-
+        
+        if tmp_score is not None:
+            attention_probs = tmp_score
+        # logger.info(f'Shape of attention probabilities = {attention_probs.size()}')
+        # logger.info('============================Attention Probabilities===============================')
+        # mean_head_example_entropies = []
+        # mean_head_word_entropies = []
+        # for head in range(self.num_attention_heads):
+            # logger.info(f'====================Attention Head No. {head}==========================================')
+            # entropies = []
+            # head_entropies = []
+            # for i in range(attention_probs.size()[0]):
+                # logger.info(f'========================Example No. {i}==========================================')
+                # logger.info(f'Attention Probabilities = {attention_probs[i,head,:seq_lengths[i],:seq_lengths[i]]}')
+                # dist = Categorical(probs = attention_probs[i,head,:seq_lengths[i],:seq_lengths[i]])
+                # entropy = dist.entropy()
+                # entropies = entropies + entropy.tolist()
+                # mean_entropy = torch.mean(entropy)
+                # head_entropies.append(mean_entropy.item())
+                # logger.info(f'Shape of entropy = {entropy.size()}')
+                # logger.info(f'Entropy = {entropy}')
+                # logger.info(f'Mean Entropy = {mean_entropy}')
+            # mean_head_example_entropy = np.mean(head_entropies)
+            # mean_head_word_entropy = np.mean(entropies)
+            # mean_head_example_entropies.append(mean_head_example_entropy)
+            # mean_head_word_entropies.append(mean_head_word_entropy)
+            # logger.info(f'Average mean example entropy over batch for head {head} = {mean_head_example_entropy}')
+            # logger.info(f'Average entropy over batch for head {head} = {mean_head_word_entropy}')
+        # logger.info(f'Average per example entropies for each head = {mean_head_example_entropies}')
+        # logger.info(f'Average per word entropies for each head = {mean_head_word_entropies}')
+        # logger.info(f'Average per example entropy = {np.mean(mean_head_example_entropies)}')
+        # logger.info(f'Average per word entropy = {np.mean(mean_head_word_entropies)}')
+        
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
-        attention_probs = self.dropout(attention_probs)
+        # attention_probs = self.dropout(attention_probs)
 
         # Mask heads if we want to
         if head_mask is not None:
@@ -286,7 +321,7 @@ class BertSelfAttention(nn.Module):
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
-
+        
         outputs = (context_layer, attention_probs) if output_attentions else (context_layer,)
         return outputs
 
@@ -343,6 +378,7 @@ class BertAttention(nn.Module):
         output_attentions=False,
         adapter_names=None,
         adapter_weights=None,
+        tmp_score=None,
     ):
         self_outputs = self.self(
             hidden_states,
@@ -351,6 +387,7 @@ class BertAttention(nn.Module):
             encoder_hidden_states,
             encoder_attention_mask,
             output_attentions,
+            tmp_score,
         )
         attention_output = self.output(self_outputs[0], hidden_states, adapter_names=adapter_names, adapter_weights=adapter_weights)
         outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
@@ -413,6 +450,7 @@ class BertLayer(BertLayerAdaptersMixin, nn.Module):
         output_attentions=False,
         adapter_names=None,
         adapter_weights=None,
+        tmp_score=None,
     ):
         self_attention_outputs = self.attention(
             hidden_states,
@@ -421,6 +459,7 @@ class BertLayer(BertLayerAdaptersMixin, nn.Module):
             output_attentions=output_attentions,
             adapter_names=adapter_names,
             adapter_weights=adapter_weights,
+            tmp_score=tmp_score,
         )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
@@ -476,11 +515,14 @@ class BertEncoder(BertEncoderAdaptersMixin, nn.Module):
         adapter_names=None,
         adapter_weights=None,
         return_dict=False,
+        tmp_score=None,
+        tar_layer=None,
     ):
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
         all_cross_attentions = () if output_attentions and self.config.add_cross_attention else None
         for i, layer_module in enumerate(self.layer):
+            # logger.info(f'==================Layer Number = {i}===================================')
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
@@ -507,17 +549,30 @@ class BertEncoder(BertEncoderAdaptersMixin, nn.Module):
                     current_adapter_weights = adapter_weights[i+1]
                 else:
                     current_adapter_weights = adapter_weights
+                if tar_layer == i:
+                    layer_outputs = layer_module(
+                        hidden_states,
+                        attention_mask,
+                        layer_head_mask,
+                        encoder_hidden_states,
+                        encoder_attention_mask,
+                        output_attentions,
+                        adapter_names=adapter_names,
+                        adapter_weights=current_adapter_weights,
+                        tmp_score=tmp_score,
+                    )
+                else:
+                    layer_outputs = layer_module(
+                        hidden_states,
+                        attention_mask,
+                        layer_head_mask,
+                        encoder_hidden_states,
+                        encoder_attention_mask,
+                        output_attentions,
+                        adapter_names=adapter_names,
+                        adapter_weights=current_adapter_weights,
+                    )
 
-                layer_outputs = layer_module(
-                    hidden_states,
-                    attention_mask,
-                    layer_head_mask,
-                    encoder_hidden_states,
-                    encoder_attention_mask,
-                    output_attentions,
-                    adapter_names=adapter_names,
-                    adapter_weights=current_adapter_weights,
-                )
             hidden_states = layer_outputs[0]
             if output_attentions:
                 all_self_attentions = all_self_attentions + (layer_outputs[1],)
@@ -820,6 +875,8 @@ class BertModel(BertModelAdaptersMixin, BertPreTrainedModel):
         adapter_names=None,
         adapter_weights=None,
         return_dict=None,
+        tmp_score=None,
+        tar_layer=None,
     ):
         r"""
         encoder_hidden_states  (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, hidden_size)`, `optional`):
@@ -888,7 +945,6 @@ class BertModel(BertModelAdaptersMixin, BertPreTrainedModel):
             embedding_output = self.invertible_adapters_forward(embedding_output, adapter_names=adapter_names, adapter_weights=adapter_weights[0])
         else:
             embedding_output = self.invertible_adapters_forward(embedding_output, adapter_names=adapter_names, adapter_weights=adapter_weights)
-
         encoder_outputs = self.encoder(
             embedding_output,
             attention_mask=extended_attention_mask,
@@ -900,10 +956,11 @@ class BertModel(BertModelAdaptersMixin, BertPreTrainedModel):
             adapter_names=adapter_names,
             adapter_weights=adapter_weights,
             return_dict=return_dict,
+            tmp_score=tmp_score,
+            tar_layer=tar_layer,
         )
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
-
         if not return_dict:
             return (sequence_output, pooled_output) + encoder_outputs[1:]
 
@@ -1678,6 +1735,9 @@ class BertForTokenClassification(ModelWithHeadsAdaptersMixin, BertPreTrainedMode
         adapter_weights=None,
         return_dict=None,
         return_sequence_out=False,
+        pred_labels=None,
+        tmp_score=None,
+        tar_layer=None,
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
@@ -1685,7 +1745,6 @@ class BertForTokenClassification(ModelWithHeadsAdaptersMixin, BertPreTrainedMode
             1]``.
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
         outputs = self.bert(
             input_ids,
             attention_mask=attention_mask,
@@ -1698,12 +1757,24 @@ class BertForTokenClassification(ModelWithHeadsAdaptersMixin, BertPreTrainedMode
             adapter_names=adapter_names,
             adapter_weights=adapter_weights,
             return_dict=return_dict,
+            tar_layer=tar_layer,
+            tmp_score=tmp_score
         )
-
         sequence_output = outputs[0]
-
         sequence_output = self.dropout(sequence_output)
         logits = self.classifier(sequence_output)
+        probs = nn.functional.softmax(logits, dim=-1)
+
+        if tmp_score is not None:
+            pred_labels = pred_labels.repeat(16,1)
+            pred_labels = pred_labels.unsqueeze(2)
+            probs = torch.gather(probs, 2, pred_labels)
+            probs = torch.squeeze(probs)
+            input_len = torch.sum(attention_mask)
+            probs = probs[:,:input_len]
+            probs = torch.prod(probs, dim=-1)
+            gradient = torch.autograd.grad(torch.unbind(probs), tmp_score)
+            return None, gradient[0]
 
         loss = None
         if labels is not None:

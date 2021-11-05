@@ -61,6 +61,7 @@ def set_seed(args):
   random.seed(args.seed)
   np.random.seed(args.seed)
   torch.manual_seed(args.seed)
+  logger.info(f'Seed = {args.seed}')
   if args.n_gpu > 0:
     torch.cuda.manual_seed_all(args.seed)
 
@@ -247,10 +248,12 @@ def calc_weight_multi(args, model, batch, lang_adapter_names, task_name, adapter
         "attention_mask": batch[1],
         "return_sequence_out": True,
         "labels": batch[3]}
+  # logger.info(f'Language Adapters are {lang_adapter_names}')
   adapter_weights = [torch.FloatTensor([0.5 for _ in range(len(lang_adapter_names))]).to(args.device) for _ in range(13)]
   for _ in range(step):
     for w in adapter_weights: w.requires_grad = True
     normed_adapter_weights = [torch.nn.functional.softmax(w) for w in adapter_weights]
+    # logger.info(f'Initial Adapter Weights = {normed_adapter_weights}')
     model.set_active_adapters([lang_adapter_names, [task_name]])
     inputs["adapter_names"] = [lang_adapter_names, [task_name]]
 
@@ -271,10 +274,11 @@ def calc_weight_multi(args, model, batch, lang_adapter_names, task_name, adapter
 
   normed_adapter_weights = [torch.nn.functional.softmax(w) for w in adapter_weights]
   #print(normed_adapter_weights)
+  # logger.info(f'Final Adapter Weights = {normed_adapter_weights}')
   return normed_adapter_weights
 
-
-def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix="", lang="en", lang2id=None, print_result=True, adapter_weight=None, lang_adapter_names=None, task_name=None, calc_weight_step=1):
+#Changed default of calc_weight_step to 0
+def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix="", lang="en", lang2id=None, print_result=True, adapter_weight=None, lang_adapter_names=None, task_name=None, calc_weight_step=0):
   eval_dataset = load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode=mode, lang=lang, lang2id=lang2id)
 
   args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
